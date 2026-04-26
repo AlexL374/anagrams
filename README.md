@@ -1,3 +1,0 @@
-Anagrams but ranked
-
-test
