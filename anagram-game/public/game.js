@@ -280,6 +280,7 @@ function renderWordArea() {
 // ============================================================
 function clickTile(idx) {
   if (!gameActive) return;
+  if (selectedLetters.length >= 6) return;
   const lt = gameLetters[idx];
   if (lt.used) return;
   lt.used = true;

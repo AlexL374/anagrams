@@ -3,7 +3,7 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
-const { WORDS, SOURCE_WORDS } = require('./words');
+const { WORDS } = require('./words');
 
 const app = express();
 const server = http.createServer(app);
@@ -43,8 +43,23 @@ function scoreWord(word) {
   return 14; // 8+
 }
 
-function pickSourceWord() {
-  return SOURCE_WORDS[Math.floor(Math.random() * SOURCE_WORDS.length)];
+const VOWEL_POOL = 'AAAAAEEEEEEIIIOOOUU'.split('');
+const CONSONANT_POOL = 'BBCCDDDFFGGHHKLLLMMNNNNPPRRRRSSSTTTTTVVWW'.split('');
+
+function generateRandomLetters() {
+  const numVowels = Math.random() < 0.4 ? 2 : 3;
+  const letters = [];
+  for (let i = 0; i < numVowels; i++) {
+    letters.push(VOWEL_POOL[Math.floor(Math.random() * VOWEL_POOL.length)]);
+  }
+  for (let i = 0; i < 6 - numVowels; i++) {
+    letters.push(CONSONANT_POOL[Math.floor(Math.random() * CONSONANT_POOL.length)]);
+  }
+  for (let i = letters.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [letters[i], letters[j]] = [letters[j], letters[i]];
+  }
+  return letters;
 }
 
 function send(ws, obj) {
@@ -130,9 +145,7 @@ function endGame(room) {
 }
 
 function handleRematch(room) {
-  // Pick new source word and shuffle letters
-  const word = pickSourceWord();
-  room.letters = word.split('');
+  room.letters = generateRandomLetters();
   startCountdown(room);
 }
 
@@ -188,9 +201,8 @@ wss.on('connection', (ws) => {
 
       send(ws, { type: 'room_joined', code, playerIndex: 1 });
 
-      // Both players present — pick source word and start countdown
-      const word = pickSourceWord();
-      room.letters = word.split('');
+      // Both players present — generate random letters and start countdown
+      room.letters = generateRandomLetters();
       startCountdown(room);
     }
 
@@ -200,7 +212,7 @@ wss.on('connection', (ws) => {
       if (room.state !== 'playing') return;
 
       const word = (msg.word || '').toLowerCase().replace(/[^a-z]/g, '');
-      if (word.length < 3) {
+      if (word.length < 3 || word.length > 6) {
         return send(ws, { type: 'word_result', word, result: 'invalid', score: 0 });
       }
 
